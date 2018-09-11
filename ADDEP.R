@@ -40,6 +40,28 @@ ADDEP_1$Marked_Recovery <- as.factor(ifelse(ADDEP_1$REVIEWASIAGRADEADM == "A" &
                                                ifelse(ADDEP_1$REVIEWASIAGRADEADM == "D" &
                                                         ADDEP_1$Walk == 1, 1, 0)))))
 
+
+
+ASIA_updated_2$BASAIMP_ANNUAL_numeric <- as.numeric(chartr("ABCDE", "12345", ASIA_updated_2$BASAIMP))
+ASIA_updated_2$BFIMLMOD <-  as.factor(parse_number(ASIA_updated_2$BFIMLMOD))
+
+
+ADDEP_2 <- merge(ADDEP_1, ASIA_updated_2, by = "NEWID", all=TRUE)
+ADDEP_2$WALK_ANNUAL_updated <- as.factor(ifelse(ADDEP_2$BFIMLMOD==1, 0, 1))
+ADDEP_2$Marked_Recovery_Annual <- as.factor(ifelse(ADDEP_2$REVIEWASIAGRADEADM == "A" & 
+                                              ADDEP_2$BASAIMP_ANNUAL_numeric-ADDEP_2$ASIA_ADM_numeric >= 2, 1, 
+                                            ifelse(ADDEP_2$REVIEWASIAGRADEADM == "B" &
+                                                     ADDEP_2$BASAIMP_ANNUAL_numeric-ADDEP_2$ASIA_ADM_numeric >= 2, 1,
+                                                   ifelse(ADDEP_2$REVIEWASIAGRADEADM == "C" &
+                                                            ADDEP_2$WALK_ANNUAL_updated == 1, 1,
+                                                          ifelse(ADDEP_2$REVIEWASIAGRADEADM == "D" &
+                                                                   ADDEP_2$WALK_ANNUAL_updated == 1, 1, 0)))))
+
+
+
+ADDEP_2$ASIA_CHANGE_updated_3 <- as.factor(ADDEP_2$BASAIMP_ANNUAL_numeric-ADDEP_1$ASIA_ADM_numeric)
+
+
 #Descriptive Statistics 
 fun <- function(x){
   c(m=mean(x, na.rm=T), v=sd(x, na.rm=T), n=length(x))
@@ -79,7 +101,7 @@ ADDEP_noNA <- ADDEP[!is.na(ADDEP$LOWER_MS_ANNUAL),]
 ADDEP_noNA <- ADDEP[c("LOWER_MS_ANNUAL", "RATIO_ALB")]
 ADDEP_noNA <- ADDEP_noNA[!is.na(ADDEP_noNA$LOWER_MS_ANNUAL),]
 
-ADDEP_noASIA <- ADDEP_1[ ! (ADDEP_1$ASIA_LEVEL_DIS=="I" ), ] 
+ADDEP_noASIA <- ADDEP_2[ ! (ADDEP_2$ASIA_LEVEL_DIS=="I" ), ] 
 
 cv.lm(data=ADDEP_noNA, form.lm=formula(LOWER_MS_ANNUAL~RATIO_ALB), m=5, 
       dots=FALSE, seed=29, plotit = TRUE, printit=TRUE)
@@ -125,17 +147,15 @@ lm_4 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+SEX_NUM+AGE_INJ_NUM+
   SPL_SURG_NUM+REVIEWASIAGRADEADM, data= subset(ADDEP_1, !is.na(CRLOWPREALBUMIN)))
 
 #Set-validation 
-set.seed(100)
-sample <- sample(seq(1, nrow(ADDEP_1)), replace=FALSE)
-training <- ADDEP_1[sample[1:1200],]
-test <-ADDEP_1[sample[1201:nrow(ADDEP_1)],]
+set.seed(2000)
+sample <- sample(seq(1, nrow(ADDEP_noASIA)), replace=FALSE)
+training <- ADDEP_noASIA[sample[1:1198],]
+test <-ADDEP_noASIA[sample[1199:nrow(ADDEP_noASIA)],]
 
 
 smp_size <- floor(0.95 * nrow(ADDEP_noASIA))
-
 set.seed(123)
 train_ind <- sample(seq_len(nrow(ADDEP_noASIA)), size = smp_size)
-
 training <- ADDEP_noASIA[train_ind, ]
 test <- ADDEP_noASIA[-train_ind, ]
 
@@ -202,7 +222,7 @@ cleanup <- theme(panel.grid.major = element_blank(),
                  axis.ticks.y = element_line(colour="gray"), 
                  axis.ticks.x = element_line(colour="gray"))
 
-MR_ALB<- ggplot(data=subset(ADDEP_1, !is.na(Marked_Recovery)), aes(x=Marked_Recovery, y=CRLOWALBUMIN))+
+MR_ALB<- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery)), aes(x=Marked_Recovery, y=CRLOWALBUMIN))+
   geom_jitter()+
   geom_boxplot()+
   scale_y_continuous(limits=c(0,5))+
@@ -211,7 +231,7 @@ MR_ALB<- ggplot(data=subset(ADDEP_1, !is.na(Marked_Recovery)), aes(x=Marked_Reco
   labs(x="Marked Recovery", y="Lowest Recorded Alb")+
   facet_grid(.~REVIEWASIAGRADEADM)
 
-MR_PREALB <- ggplot(data=subset(ADDEP_1, !is.na(Marked_Recovery)), aes(x=Marked_Recovery, y=CRLOWPREALBUMIN))+
+MR_PREALB <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery)), aes(x=Marked_Recovery, y=CRLOWPREALBUMIN))+
   geom_jitter()+
   geom_boxplot()+
   cleanup+
@@ -220,7 +240,7 @@ MR_PREALB <- ggplot(data=subset(ADDEP_1, !is.na(Marked_Recovery)), aes(x=Marked_
   labs(x="Marked Recovery", y="Lowest Recorded Pre-Alb")+
   facet_grid(.~REVIEWASIAGRADEADM)
 
-MR_HCT<- ggplot(data=subset(ADDEP_1, !is.na(Marked_Recovery)), aes(x=Marked_Recovery, y=CRLOWESTHCT))+
+MR_HCT<- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery)), aes(x=Marked_Recovery, y=CRLOWESTHCT))+
   geom_jitter()+
   geom_boxplot()+
   cleanup+
@@ -238,25 +258,67 @@ MR_HGB<- ggplot(data=subset(ADDEP_1, !is.na(Marked_Recovery)), aes(x=Marked_Reco
 
 multiplot(MR_ALB, MR_PREALB, MR_HCT, MR_HGB, cols=2)
 
+MR_ALB_1y <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(x=Marked_Recovery_Annual, y=CRLOWALBUMIN))+
+  geom_jitter()+
+  geom_boxplot()+
+  scale_y_continuous(limits=c(0,5))+
+  cleanup+
+  ggtitle("Lowest Recorded Alb across AIS-grades")+
+  labs(x="Marked Recovery Annual", y="Lowest Recorded Alb")+
+  facet_grid(.~REVIEWASIAGRADEADM)
+
+MR_PREALB_1y <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(x=Marked_Recovery_Annual, y=CRLOWPREALBUMIN))+
+  geom_jitter()+
+  geom_boxplot()+
+  cleanup+
+  scale_y_continuous(limits=c(0,1))+
+  ggtitle("Lowest Recorded Pre-Alb across AIS-grades")+
+  labs(x="Marked Recovery Annual", y="Lowest Recorded Pre-Alb")+
+  facet_grid(.~REVIEWASIAGRADEADM)
+
+MR_HCT_1y<- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(x=Marked_Recovery_Annual, y=CRLOWESTHCT))+
+  geom_jitter()+
+  geom_boxplot()+
+  cleanup+
+  ggtitle("Lowest Recorded HCT across AIS-grades")+
+  labs(x="Marked Recovery Annual", y="Lowest Recorded HCT")+
+  facet_grid(.~REVIEWASIAGRADEADM)
+
+MR_HGB_1y<- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(x=Marked_Recovery_Annual, y=CRLOWESTHGB))+
+  geom_jitter()+
+  geom_boxplot()+
+  cleanup+
+  ggtitle("Lowest Recorded HGB across AIS-grades")+
+  labs(x="Marked Recovery Annual", y="Lowest Recorded HGB")+
+  facet_grid(.~REVIEWASIAGRADEADM)
+
+multiplot(MR_ALB_1y,MR_PREALB_1y, MR_HCT_1y, MR_HGB_1y, cols=2)
 #ASIA grades change in one year 
-glm_1 <- glm(Marked_Recovery ~ REVIEWASIAGRADEADM+CRLOWALBUMIN, data=subset(ADDEP_1, !is.na(CRLOWALBUMIN)), family="binomial")
+glm_1 <- glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM+CRLOWALBUMIN, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)), family="binomial")
 
-glm_1a <-glm(Marked_Recovery ~ REVIEWASIAGRADEADM, data=subset(ADDEP_1, !is.na(CRLOWALBUMIN)), family="binomial")
+glm_1a <-glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)), family="binomial")
 
-anova(glm_1, glm_1a, test="LRT")
+glm_1b <-glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM, data=ADDEP_2, family="binomial")
 
-prob_glm_1a <- predict(glm_1, newdata=ADDEP_1, type="response")
-pred_glm_1a <- prediction(prob_glm_1a, ADDEP_1$Marked_Recovery)
+
+anova(glm_1, glm_1a, test="Chisq")
+
+
+prob_glm_1a <- predict(glm_1, newdata=ADDEP_2, type="response")
+pred_glm_1a <- prediction(prob_glm_1a, ADDEP_2$Marked_Recovery_Annual)
 
 #Plot for PR/ROC
 library(ROCR)
 perf_1a <- performance(pred_glm_1a, measure="prec", x.measure="rec")
 plot(perf_1a)
 
+
+
 #AUC for PR
-pr_scores_1a <- na.omit(data.frame(prob_glm_1a,ADDEP_1$Marked_Recovery))
-pr_1a <- pr.curve(scores.class0=pr_scores_1a[pr_scores_1a$ADDEP_1.Marked_Recovery=="1",]$prob_glm_1a,
-               scores.class1=pr_scores_1a[pr_scores_1a$ADDEP_1.Marked_Recovery=="0",]$prob_glm_1a,
+library(PRROC)
+pr_scores_1a <- na.omit(data.frame(prob_glm_1a,ADDEP_2$Marked_Recovery_Annual))
+pr_1a <- pr.curve(scores.class0=pr_scores_1a[pr_scores_1a$ADDEP_2.Marked_Recovery_Annual=="1",]$prob_glm_1a,
+               scores.class1=pr_scores_1a[pr_scores_1a$ADDEP_2.Marked_Recovery_Annual=="0",]$prob_glm_1a,
                curve=T)
 pr_1a
 
@@ -280,8 +342,14 @@ pred_glm_2 <- prediction(prob_glm_2, test$Marked_Recovery)
 
 #Plot for PR/ROC
 library(ROCR)
-perf <- performance(pred_glm_2, measure="prec", x.measure="rec")
+perf <- performance(pred_glm_2, "prec", "rec")
 plot(perf)
+
+glm_2_pred <- ifelse(prob_glm_2>0.14, 1, 0)
+glm_2_accuracy <- table(glm_2_pred, test$Marked_Recovery)
+sensitivity(glm_2_accuracy)
+specificity(glm_2_accuracy)
+confusionMatrix(glm_2_accuracy)
 
 #AUC for PR
 pr_scores <- na.omit(data.frame(prob_glm_2, test$Marked_Recovery))
@@ -289,6 +357,10 @@ pr <- pr.curve(scores.class0=pr_scores[pr_scores$test.Marked_Recovery=="1",]$pro
                scores.class1=pr_scores[pr_scores$test.Marked_Recovery=="0",]$prob_glm_2,
                curve=T)
 pr
+
+curve_pr <- as.data.frame(pr$curve)
+pr_only <- curve_pr[,c("V1", "V2")]
+pr_only$models <- rep(1,nrow(pr_only))
 
 curve <- as.data.frame(pr$curve)
 glm_2_pr <- ggplot(curve, aes(curve$V1, curve$V2))+
@@ -298,6 +370,7 @@ glm_2_pr <- ggplot(curve, aes(curve$V1, curve$V2))+
   ggtitle("PR Curve for Albumin Multivariate Model")+
   labs(x="Recall", y="Precision")+
   annotate("text", x = 0.25, y=0.25, label = "AUC=0.76")
+
 
 #Another different ways to calculate AUC for PR
 
@@ -323,9 +396,9 @@ train.control <- trainControl(method = "repeatedcv",
                               savePredictions=TRUE,
                               verboseIter=TRUE)
 
-k_fold_glm_2 <- train(Marked_Recovery~CRLOWESTHCT+SEX_NUM+AGE_INJ_NUM+
+k_fold_glm_2 <- train(Marked_Recovery_Annual~CRLOWPREALBUMIN+SEX_NUM+AGE_INJ_NUM+
                   ASIA_LEVEL_DIS+ASIA_DISCHARGE, 
-                data = ADDEP_1,
+                data = ADDEP_2,
                 method = "glm",
                 trControl = train.control, na.action=na.omit)
 k_fold_glm_2
@@ -334,7 +407,7 @@ k_pred_glm_2 <- as.data.frame(k_fold_glm_2$pred[1])
 k_obs_glm_2 <- as.data.frame(k_fold_glm_2$pred[2])
 k_accuracy_glm_2 <- cbind(k_pred_glm_2, k_obs_glm_2)
 
-pr_k_glm_2 <- pr.curve(scores.class0=k_accuracy_glm_2[k_accuracy_glm_2$obs=="1",]$pred,
+pr_k_glm_2 <- roc.curve(scores.class0=k_accuracy_glm_2[k_accuracy_glm_2$obs=="1",]$pred,
                scores.class1=k_accuracy_glm_2[k_accuracy_glm_2$obs=="0",]$pred,
                curve=T)
 pr_k_glm_2
@@ -368,6 +441,9 @@ pr_3 <- pr.curve(scores.class0=pr_scores_3[pr_scores_3$test.Marked_Recovery=="1"
                curve=T)
 pr_3
 
+curve_pr_3 <- as.data.frame(pr_3$curve)
+pr_3_only <- curve_pr_3[,c("V1", "V2")]
+pr_3_only$models <- rep(2,nrow(pr_3_only))
 
 curve_3 <- as.data.frame(pr_3$curve)
 glm_3_pr <- ggplot(curve_3, aes(curve_3$V1, curve_3$V2))+
@@ -401,6 +477,9 @@ pr_4 <- pr.curve(scores.class0=pr_scores_4[pr_scores_4$test.Marked_Recovery=="1"
                  curve=T)
 pr_4
 
+curve_pr_4 <- as.data.frame(pr_4$curve)
+pr_4_only <- curve_pr_4[,c("V1", "V2")]
+pr_4_only$models <- rep(3,nrow(pr_4_only))
 
 curve_4 <- as.data.frame(pr_4$curve)
 glm_4_pr <- ggplot(curve_4, aes(curve_4$V1, curve_4$V2))+
@@ -434,6 +513,9 @@ pr_5 <- pr.curve(scores.class0=pr_scores_5[pr_scores_5$test.Marked_Recovery=="1"
                  curve=T)
 pr_5
 
+curve_pr_5 <- as.data.frame(pr_5$curve)
+pr_5_only <- curve_pr_5[,c("V1", "V2")]
+pr_5_only$models <- rep(4,nrow(pr_5_only))
 
 curve_5 <- as.data.frame(pr_5$curve)
 glm_5_pr <- ggplot(curve_5, aes(curve_5$V1, curve_5$V2))+
@@ -446,9 +528,261 @@ glm_5_pr <- ggplot(curve_5, aes(curve_5$V1, curve_5$V2))+
 
 multiplot(glm_2_pr, glm_3_pr, glm_4_pr, glm_5_pr, cols=2)
 
-auc_glm_4 <- performance(pred_glm_4, measure="auc")
-auc_glm_4@y.values[[1]]
+#AIS only 
+glm_6 <- glm(Marked_Recovery ~REVIEWASIAGRADEADM, data=training, family="binomial")
 
+
+prob_glm_6 <- predict(glm_6, newdata=test, type="response")
+pred_glm_6 <- prediction(prob_glm_6, test$Marked_Recovery)
+
+#Plot for PR/ROC
+library(ROCR)
+
+
+pr_scores_6 <- na.omit(data.frame(prob_glm_6, test$Marked_Recovery))
+pr_6 <-pr.curve(scores.class0=pr_scores_6[pr_scores_6$test.Marked_Recovery=="1",]$prob_glm_6,
+                  scores.class1=pr_scores_6[pr_scores_6$test.Marked_Recovery=="0",]$prob_glm_6,
+                  curve=T)
+pr_6
+
+curve_pr_6 <- as.data.frame(pr_6$curve)
+pr_6_only <- curve_pr_6[,c("V1", "V2")]
+pr_6_only$models <- rep(5,nrow(pr_6_only))
+
+glm_6_pr <- ggplot(curve_pr_6, aes(curve_pr_6$V1, curve_pr_6$V2))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curve for HGB Multivariate Model")+
+  labs(x="Specificity", y="Sensitivity")+
+  annotate("text", x = 0.75, y=0.25, label = "AUC=0.89")
+
+# PRs curve for all
+
+pr_all <- merge_all(list(pr_only, pr_3_only,pr_4_only, pr_5_only, pr_6_only), by=c("models", "V1", "V2"))
+pr_all$models <- factor(pr_all$models, levels=c("1", "2", "3", "4", "5"), labels=c("Albumin", "Pre-albumin", 
+                                                                                       "HCT", "HGB", "only AIS"))
+
+ggplot(pr_all, aes(pr_all$V1, pr_all$V2, colour=models))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("PR Curves for Multivariate Models")+
+  labs(x="Recall", y="Precision", fill="Multivariate Models")+
+  labs(caption = "AUC For Albumin/HCT/HGB = 0.60
+       AUC for Pre-albumin = 0.08
+       AUC for AIS only =0.55")
+
+
+
+#Marked Recovery at 1 year 
+#Low Alb
+
+glm_2_1y <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS, data=training, family="binomial")
+
+
+prob_glm_2_1y <- predict(glm_2_1y, newdata=test, type="response")
+pred_glm_2_1y <- prediction(prob_glm_2_1y, test$Marked_Recovery_Annual)
+
+#Plot for PR/ROC
+library(ROCR)
+perf_1y <- performance(pred_glm_2_1y, "sens", "spec")
+plot(perf_1y)
+
+glm_2_pred_1y <- ifelse(prob_glm_2_1y>0.27, 1, 0)
+glm_2_accuracy_1y <- table(glm_2_pred_1y, test$Marked_Recovery_Annual)
+sensitivity(glm_2_accuracy_1y)
+specificity(glm_2_accuracy_1y)
+confusionMatrix(glm_2_accuracy_1y)
+
+#AUC for ROC
+roc_scores_1y <- na.omit(data.frame(prob_glm_2_1y, test$Marked_Recovery_Annual))
+roc <-roc.curve(scores.class0=roc_scores_1y[roc_scores_1y$test.Marked_Recovery_Annual=="1",]$prob_glm_2_1y,
+               scores.class1=roc_scores_1y[roc_scores_1y$test.Marked_Recovery_Annual=="0",]$prob_glm_2_1y,
+               curve=T)
+roc
+
+curve_roc <- as.data.frame(roc$curve)
+roc_only <- curve_roc[,c("V1", "V2")]
+roc_only$models <- rep(1,nrow(roc_only))
+
+glm_2_roc_1y <- ggplot(curve_roc, aes(curve_roc$V1, curve_roc$V2))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curve for Albumin Multivariate Model")+
+  labs(x="Specificity", y="Sensitivity")+
+  annotate("text", x = 0.75, y=0.25, label = "AUC=0.81")
+
+#pre-alb
+
+glm_3_1y <- glm(Marked_Recovery_Annual ~ CRLOWPREALBUMIN+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS, data=training, family="binomial")
+
+
+prob_glm_3_1y <- predict(glm_3_1y, newdata=test, type="response")
+pred_glm_3_1y <- prediction(prob_glm_3_1y, test$Marked_Recovery_Annual)
+
+#Plot for PR/ROC
+library(ROCR)
+perf_1y <- performance(pred_glm_3_1y, "prec", "rec")
+plot(perf_1y)
+
+glm_3_pred_1y <- ifelse(prob_glm_3_1y>0.22, 1, 0)
+glm_3_accuracy_1y <- table(glm_3_pred_1y, test$Marked_Recovery_Annual)
+sensitivity(glm_3_accuracy_1y)
+specificity(glm_3_accuracy_1y)
+confusionMatrix(glm_3_accuracy_1y)
+
+#AUC for ROC
+roc_scores_3_1y <- na.omit(data.frame(prob_glm_3_1y, test$Marked_Recovery_Annual))
+roc_3 <-roc.curve(scores.class0=roc_scores_3_1y[roc_scores_3_1y$test.Marked_Recovery_Annual=="1",]$prob_glm_3_1y,
+                scores.class1=roc_scores_3_1y[roc_scores_3_1y$test.Marked_Recovery_Annual=="0",]$prob_glm_3_1y,
+                curve=T)
+roc_3
+
+curve_roc_3 <- as.data.frame(roc_3$curve)
+roc_3_only <- curve_roc_3[,c("V1", "V2")]
+roc_3_only$models <- rep(2,nrow(roc_3_only))
+
+glm_3_roc_1y <- ggplot(curve_roc_3, aes(curve_roc_3$V1, curve_roc_3$V2))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curve for Pre-Albumin Multivariate Model")+
+  labs(x="Specificity", y="Sensitivity")+
+  annotate("text", x = 0.75, y=0.25, label = "AUC=0.79")
+
+#HCT
+
+glm_4_1y <- glm(Marked_Recovery_Annual ~ CRLOWESTHCT+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS, data=training, family="binomial")
+
+
+prob_glm_4_1y <- predict(glm_4_1y, newdata=test, type="response")
+pred_glm_4_1y <- prediction(prob_glm_4_1y, test$Marked_Recovery_Annual)
+
+#Plot for PR/ROC
+library(ROCR)
+perf_1y <- performance(pred_glm_4_1y, "prec", "rec")
+plot(perf_1y)
+
+glm_4_pred_1y <- ifelse(prob_glm_4_1y>0.22, 1, 0)
+glm_4_accuracy_1y <- table(glm_4_pred_1y, test$Marked_Recovery_Annual)
+sensitivity(glm_4_accuracy_1y)
+specificity(glm_4_accuracy_1y)
+confusionMatrix(glm_4_accuracy_1y)
+
+#AUC for ROC
+roc_scores_4_1y <- na.omit(data.frame(prob_glm_4_1y, test$Marked_Recovery_Annual))
+roc_4 <-roc.curve(scores.class0=roc_scores_4_1y[roc_scores_4_1y$test.Marked_Recovery_Annual=="1",]$prob_glm_4_1y,
+                  scores.class1=roc_scores_4_1y[roc_scores_4_1y$test.Marked_Recovery_Annual=="0",]$prob_glm_4_1y,
+                  curve=T)
+roc_4
+
+curve_roc_4 <- as.data.frame(roc_4$curve)
+roc_4_only <- curve_roc_4[,c("V1", "V2")]
+roc_4_only$models <- rep(3,nrow(roc_4_only))
+
+glm_4_roc_1y <- ggplot(curve_roc_4, aes(curve_roc_4$V1, curve_roc_4$V2))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curve for HCT Multivariate Model")+
+  labs(x="Specificity", y="Sensitivity")+
+  annotate("text", x = 0.75, y=0.25, label = "AUC=0.90")
+
+#HGB
+
+glm_5_1y <- glm(Marked_Recovery_Annual ~ CRLOWESTHGB+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS, data=training, family="binomial")
+
+
+prob_glm_5_1y <- predict(glm_5_1y, newdata=test, type="response")
+pred_glm_5_1y <- prediction(prob_glm_5_1y, test$Marked_Recovery_Annual)
+
+#Plot for PR/ROC
+library(ROCR)
+perf_1y <- performance(pred_glm_4_1y, "prec", "rec")
+plot(perf_1y)
+
+glm_5_pred_1y <- ifelse(prob_glm_5_1y>0.22, 1, 0)
+glm_5_accuracy_1y <- table(glm_5_pred_1y, test$Marked_Recovery_Annual)
+sensitivity(glm_5_accuracy_1y)
+specificity(glm_5_accuracy_1y)
+confusionMatrix(glm_5_accuracy_1y)
+
+#AUC for all ROCs
+roc_scores_5_1y <- na.omit(data.frame(prob_glm_5_1y, test$Marked_Recovery_Annual))
+roc_5 <-roc.curve(scores.class0=roc_scores_5_1y[roc_scores_5_1y$test.Marked_Recovery_Annual=="1",]$prob_glm_5_1y,
+                  scores.class1=roc_scores_5_1y[roc_scores_5_1y$test.Marked_Recovery_Annual=="0",]$prob_glm_5_1y,
+                  curve=T)
+roc_5
+
+curve_roc_5 <- as.data.frame(roc_5$curve)
+roc_5_only <- curve_roc_5[,c("V1", "V2")]
+roc_5_only$models <- rep(4,nrow(roc_5_only))
+
+glm_5_roc_1y <- ggplot(curve_roc_5, aes(curve_roc_5$V1, curve_roc_5$V2))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curve for HGB Multivariate Model")+
+  labs(x="Specificity", y="Sensitivity")+
+  annotate("text", x = 0.75, y=0.25, label = "AUC=0.89")
+
+#only ASIA grades
+
+glm_6_1y <- glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM, data=training, family="binomial")
+
+
+prob_glm_6_1y <- predict(glm_6_1y, newdata=test, type="response")
+pred_glm_6_1y <- prediction(prob_glm_6_1y, test$Marked_Recovery_Annual)
+
+#Plot for PR/ROC
+library(ROCR)
+perf_1y <- performance(pred_glm_4_1y, "prec", "rec")
+plot(perf_1y)
+
+glm_6_pred_1y <- ifelse(prob_glm_6_1y>0.23, 1, 0)
+glm_6_accuracy_1y <- table(glm_6_pred_1y, test$Marked_Recovery_Annual)
+sensitivity(glm_6_accuracy_1y)
+specificity(glm_6_accuracy_1y)
+confusionMatrix(glm_6_accuracy_1y)
+
+#AUC for all ROCs
+roc_scores_6_1y <- na.omit(data.frame(prob_glm_6_1y, test$Marked_Recovery_Annual))
+roc_6 <-roc.curve(scores.class0=roc_scores_6_1y[roc_scores_6_1y$test.Marked_Recovery_Annual=="1",]$prob_glm_6_1y,
+                  scores.class1=roc_scores_6_1y[roc_scores_6_1y$test.Marked_Recovery_Annual=="0",]$prob_glm_6_1y,
+                  curve=T)
+roc_6
+
+curve_roc_6 <- as.data.frame(roc_6$curve)
+roc_6_only <- curve_roc_6[,c("V1", "V2")]
+roc_6_only$models <- rep(5,nrow(roc_6_only))
+
+glm_6_roc_1y <- ggplot(curve_roc_6, aes(curve_roc_6$V1, curve_roc_6$V2))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curve for HGB Multivariate Model")+
+  labs(x="Specificity", y="Sensitivity")+
+  annotate("text", x = 0.75, y=0.25, label = "AUC=0.89")
+
+#plots for all rocs
+rocs_all <- merge_all(list(roc_only,roc_4_only, roc_5_only, roc_6_only), by=c("models", "V1", "V2"))
+rocs_all$models <- factor(rocs_all$models, levels=c("1", "3", "4", "5"), labels=c("Albumin", 
+                                                                                  "HCT", "HGB", "only AIS"))
+
+ggplot(data=rocs_all, aes(rocs_all$V1, rocs_all$V2, colour=models))+
+  geom_path()+
+  theme_bw()+
+  cleanup+
+  ggtitle("ROC Curves for Multivariate Models")+
+  labs(x="Specificity", y="Sensitivity", fill="Multivariate Models")+
+  labs(caption = "AUC For Albumin/HCT/HGB = 0.9
+       AUC for AIS only =0.86")
+
+#URP
+URP_MR <- ctree(Marked_Recovery_Annual ~ CRLOWALBUMIN+CRLOWPREALBUMIN+CRLOWESTHCT+CRLOWESTHGB+LOWER_MS_SURG+REVIEWASIAGRADEADM, data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)))
+plot(URP_MR)
 
 
 walk <- data.frame(table(ADDEP_1$AFLMODDS,ADDEP_1$ASIA_CHANGE_updated))
