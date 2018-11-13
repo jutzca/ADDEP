@@ -61,7 +61,11 @@ ADDEP_2$Marked_Recovery_Annual <- as.factor(ifelse(ADDEP_2$REVIEWASIAGRADEADM ==
 
 ADDEP_2$ASIA_CHANGE_updated_3 <- as.factor(ADDEP_2$BASAIMP_ANNUAL_numeric-ADDEP_1$ASIA_ADM_numeric)
 
+ADDEP_2$SEX_NUM <- as.factor(ADDEP_2$SEX_NUM)
 
+ADDEP_2$NEWASIAGRADE <- as.factor(paste0("AIS ", ADDEP_2$REVIEWASIAGRADEADM))
+
+ASIA <- ADDEP_2[,c("ASIA_CHANGE_updated_3", "Marked_Recovery_Annual", "REVIEWASIAGRADEADM", "BASAIMP", "WALK_ANNUAL_updated", "BFIMLMOD")]
 #Descriptive Statistics 
 fun <- function(x){
   c(m=mean(x, na.rm=T), v=sd(x, na.rm=T), n=length(x))
@@ -96,12 +100,12 @@ factors <- c("SEX_NUM", "AGE_INJ_NUM", "ETIO_TR_NUM",
              "ASS_INJ_NUM", "SPL_SURG_NUM", "ASIA_DISCHARGE")
 ADDEP[,factors] <- lapply(ADDEP[,factors], as.factor)
 
-ADDEP_noNA <- ADDEP[!is.na(ADDEP$LOWER_MS_ANNUAL),]
+ADDEP_noNA_PreALb <- ADDEP_2[!is.na(ADDEP_2$CRLOWPREALBUMIN),]
 
 ADDEP_noNA <- ADDEP[c("LOWER_MS_ANNUAL", "RATIO_ALB")]
 ADDEP_noNA <- ADDEP_noNA[!is.na(ADDEP_noNA$LOWER_MS_ANNUAL),]
 
-ADDEP_noASIA <- ADDEP_2[ ! (ADDEP_2$ASIA_LEVEL_DIS=="I" ), ] 
+ADDEP_noASIA <- ADDEP_2[ ! (ADDEP_2$ASIA_LEVEL_DIS=="I") & !(ADDEP_2$ASIA_LEVEL_DIS=="S"), ] 
 
 cv.lm(data=ADDEP_noNA, form.lm=formula(LOWER_MS_ANNUAL~RATIO_ALB), m=5, 
       dots=FALSE, seed=29, plotit = TRUE, printit=TRUE)
@@ -109,22 +113,151 @@ cv.lm(data=ADDEP_noNA, form.lm=formula(LOWER_MS_ANNUAL~RATIO_ALB), m=5,
 #Lower Motor Scores 1 year 
 lm_1 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN,subset = REVIEWASIAGRADEADM == "A", data=ADDEP_1)
 
-ggplot(data=ADDEP, aes(y=CRLOWPREALBUMIN, x=ASIA_REHAB))+
+dat_text <- data.frame(
+  label = c("p = .031", "p = .003"),
+  NEWASIAGRADE   = c("AIS B", "AIS D")
+)
+
+geom_text(data    = dat_text,
+          mapping = aes(x = 1, y = 4.75, label = label),
+          hjust   = -0.1,
+          vjust   = -1)
+
+AIS_names <- list(
+  'AIS A'="AIS A",
+  'AIS B'="AIS B*",
+  'AIS C'="AIS C",
+  'AIS D'="AIS D*"
+)
+
+AIS_labeller <- function(variable,value){
+  return(AIS_names[value])
+}
+
+ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual, fill=Marked_Recovery_Annual))+
+  geom_boxplot()+
+  geom_jitter(width=0.2, alpha=0.6)+
+  scale_fill_manual(name = "Marked recovery at annual exam", values=c("lightskyblue4", "lightblue1")
+                    , labels = c("0" = "Not Achieved", "1" = "Achieved"))+
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  facet_grid(.~NEWASIAGRADE, labeller=AIS_labeller)+
+  scale_x_discrete(labels=c("0" = "Not Achieved", "1" = "Achieved"))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=18,face="bold"),
+        strip.text.x = element_text(size = 14), 
+        axis.title.x=element_blank(),
+        axis.ticks.x=element_blank(), 
+        axis.text.x=element_blank())+
+  labs(y="Albumin concentration [g/dL]")
+
+
+MR_A <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)&REVIEWASIAGRADEADM=="A"), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual))+
   geom_boxplot()+
   geom_jitter()+
-  scale_y_continuous(limits = c(0,10))
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  scale_x_discrete(labels=c("0" = "Not Achieved", "1" = "Achieved"))+
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
 
-ggplot(data=ADDEP, aes(y=CRAVGALBUMIN, x=LOWER_MS_ANNUAL))+
+MR_B <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)&REVIEWASIAGRADEADM=="B"), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual))+
+  geom_boxplot()+
+  geom_jitter()+
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  scale_x_discrete(labels=c("0" = "Not Achieved", "1" = "Achieved"))+
+  annotate("text", x = 1.5, y=4.8, label= "p =.03 \n ORs = 4.3")+ 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+MR_C <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)&REVIEWASIAGRADEADM=="C"), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual))+
+  geom_boxplot()+
+  geom_jitter()+
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  scale_x_discrete(labels=c("0" = "Not Achieved", "1" = "Achieved"))+
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+MR_D <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)&REVIEWASIAGRADEADM=="D"), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual))+
+  geom_boxplot()+
+  geom_jitter()+
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  scale_x_discrete(labels=c("0" = "Not Achieved", "1" = "Achieved"))+
+  annotate("text", x = 1.5, y=4.8, label= "p =.003 \n ORs = 8.3")+ 
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+Fig_MR <- ggarrange(MR_A, MR_B, MR_C, MR_D, ncol=4,
+                 labels=c("AIS-A", "AIS-B", "AIS-C", "AIS-D"))
+
+annotate_figure(Fig_MR,
+                top = text_grob("Albumin Concentration Across AIS-grades \n in Marked Recovery at 52 weeks", color = "red", face = "bold", size = 14),
+                bottom = text_grob("Marked Recovery at Week 52"),
+                left = text_grob("Albumin Concentration (g/dL)", rot = 90),
+                fig.lab = "Figure 2", fig.lab.face = "bold"
+)
+
+
+ggplot(data=ADDEP_2, aes(y=CRLOWALBUMIN, x=LOWER_MS_ANNUAL))+
+  geom_point(alpha=0.6)+
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  facet_grid(.~NEWASIAGRADE)+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14,face="bold"),
+        strip.text.x = element_text(size = 12))+
+  labs(x="LEMS at annual exam", y="Albumin concentration [g/dL]")
+
+
+
+LEMS_A<-ggplot(data=subset(ADDEP_2, REVIEWASIAGRADEADM=="A"), aes(y=CRLOWALBUMIN, x=LOWER_MS_ANNUAL))+
   geom_jitter()+
   scale_y_continuous(limits=c(1,5))+
-  facet_grid(.~ASIA_REHAB)
-  geom_smooth(method="lm", formula=y~x, se=FALSE)
+  scale_x_continuous(limits=c(0,50))+
+  cleanup+
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
 
-stargazer(cbind("Estimate"=coef(lm_1),
-                confint(lm_1),
-                "Naive SE" = summary(lm_1)$coefficients[,2],
-                "Robust SE" = sqrt(diag(vcovHC(lm_1, type="HC"))),
-                "P value" = summary(lm_1)$coefficients[,4]), type = "text")
+LEMS_B<-ggplot(data=subset(ADDEP_2, REVIEWASIAGRADEADM=="B"), aes(y=CRLOWALBUMIN, x=LOWER_MS_ANNUAL))+
+  geom_jitter()+
+  scale_y_continuous(limits=c(1,5))+
+  cleanup+
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+LEMS_C<-ggplot(data=subset(ADDEP_2, REVIEWASIAGRADEADM=="C"), aes(y=CRLOWALBUMIN, x=LOWER_MS_ANNUAL))+
+  geom_jitter()+
+  scale_y_continuous(limits=c(1,5))+
+  cleanup+
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+LEMS_D<-ggplot(data=subset(ADDEP_2, REVIEWASIAGRADEADM=="D"), aes(y=CRLOWALBUMIN, x=LOWER_MS_ANNUAL))+
+  geom_jitter()+
+  scale_y_continuous(limits=c(1,5))+
+  scale_x_continuous(limits=c(0,50))+
+  cleanup+
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank())
+
+Fig <- ggarrange(LEMS_A, LEMS_B, LEMS_C, LEMS_D, ncol=4,
+          labels=c("AIS-A", "AIS-B", "AIS-C", "AIS-D"))
+
+annotate_figure(Fig,
+                top = text_grob("Albumin Concentration Across AIS-grades \n in LEMS at 52 weeks", color = "red", face = "bold", size = 14),
+                bottom = text_grob("Lower Extremity Motor Scores at Week 52"),
+                left = text_grob("Albumin Concentration (g/dL)", rot = 90),
+                fig.lab = "Figure 1", fig.lab.face = "bold"
+)
+
+stargazer(cbind("Estimate"=coef(lm_4),
+                confint(lm_4),
+                "Naive SE" = summary(lm_4)$coefficients[,2],
+                "Robust SE" = sqrt(diag(vcovHC(lm_4, type="HC"))),
+                "P value" = summary(lm_4)$coefficients[,4]), type = "text")
 
 #Check influential points
 ols_plot_resid_lev(lm_1)
@@ -137,20 +270,20 @@ lm_2 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN*REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+
              SPL_SURG_NUM, data=ADDEP_1)
 
 #heteroscedasticity corrected se
-coeftest(lm_1, vcov. = vcovHC(lm_1))
+coeftest(lm_4, vcov. = vcovHC(lm_4))
 
 #with prealbumin
 lm_3 <- lm(LOWER_MS_DISCHARGE~CRLOWPREALBUMIN+SEX_NUM+AGE_INJ_NUM+
   SPL_SURG_NUM+REVIEWASIAGRADEADM, data=ADDEP_1)
 
 lm_4 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+SEX_NUM+AGE_INJ_NUM+
-  SPL_SURG_NUM+REVIEWASIAGRADEADM, data= subset(ADDEP_1, !is.na(CRLOWPREALBUMIN)))
+  REVIEWASIAGRADEADM+ASIA_LEVEL_DIS, data= ADDEP_2)
 
 #Set-validation 
 set.seed(2000)
 sample <- sample(seq(1, nrow(ADDEP_noASIA)), replace=FALSE)
-training <- ADDEP_noASIA[sample[1:1198],]
-test <-ADDEP_noASIA[sample[1199:nrow(ADDEP_noASIA)],]
+training <- ADDEP_noASIA[sample[1:1199],]
+test <-ADDEP_noASIA[sample[1200:nrow(ADDEP_noASIA)],]
 
 
 smp_size <- floor(0.95 * nrow(ADDEP_noASIA))
@@ -159,7 +292,7 @@ train_ind <- sample(seq_len(nrow(ADDEP_noASIA)), size = smp_size)
 training <- ADDEP_noASIA[train_ind, ]
 test <- ADDEP_noASIA[-train_ind, ]
 
-lm_training <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN*REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM
+lm_training <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS
                       , data =training)
 predict_lm <- predict(lm_training, data=training, newdata = test)
 
@@ -181,8 +314,8 @@ train.control <- trainControl(method = "repeatedcv",
                               savePredictions=TRUE,
                               verboseIter=TRUE)
 
-k_fold <- train(LOWER_MS_ANNUAL~CRLOWESTHCT+SEX_NUM+AGE_INJ_NUM+
-                  ASIA_LEVEL_DIS+ASIA_DISCHARGE, 
+k_fold <- train(LOWER_MS_ANNUAL~CRLOWALBUMIN+SEX_NUM+AGE_INJ_NUM+
+                  ASIA_LEVEL_DIS+REVIEWASIAGRADEADM, 
                 data = ADDEP_1,
                 method = "lm",
                 trControl = train.control, na.action=na.omit)
@@ -294,7 +427,7 @@ MR_HGB_1y<- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(x=M
 
 multiplot(MR_ALB_1y,MR_PREALB_1y, MR_HCT_1y, MR_HGB_1y, cols=2)
 #ASIA grades change in one year 
-glm_1 <- glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM+CRLOWALBUMIN, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)), family="binomial")
+glm_1 <- glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM+CRLOWALBUMIN+CRLOWPREALBUMIN, data=subset(ADDEP_2, !is.na(CRLOWPREALBUMIN)), family="binomial")
 
 glm_1a <-glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)), family="binomial")
 
@@ -342,7 +475,7 @@ pred_glm_2 <- prediction(prob_glm_2, test$Marked_Recovery)
 
 #Plot for PR/ROC
 library(ROCR)
-perf <- performance(pred_glm_2, "prec", "rec")
+perf <- performance(pred_glm_2, "tpr", "fpr")
 plot(perf)
 
 glm_2_pred <- ifelse(prob_glm_2>0.14, 1, 0)
@@ -439,6 +572,7 @@ pr_scores_3 <- na.omit(data.frame(prob_glm_3, test$Marked_Recovery))
 pr_3 <- pr.curve(scores.class0=pr_scores_3[pr_scores_3$test.Marked_Recovery=="1",]$prob_glm_3,
                scores.class1=pr_scores_3[pr_scores_3$test.Marked_Recovery=="0",]$prob_glm_3,
                curve=T)
+
 pr_3
 
 curve_pr_3 <- as.data.frame(pr_3$curve)
@@ -624,7 +758,7 @@ pred_glm_3_1y <- prediction(prob_glm_3_1y, test$Marked_Recovery_Annual)
 
 #Plot for PR/ROC
 library(ROCR)
-perf_1y <- performance(pred_glm_3_1y, "prec", "rec")
+perf_1y <- performance(pred_glm_3_1y, "tpr", "fpr")
 plot(perf_1y)
 
 glm_3_pred_1y <- ifelse(prob_glm_3_1y>0.22, 1, 0)
@@ -767,21 +901,23 @@ glm_6_roc_1y <- ggplot(curve_roc_6, aes(curve_roc_6$V1, curve_roc_6$V2))+
   annotate("text", x = 0.75, y=0.25, label = "AUC=0.89")
 
 #plots for all rocs
-rocs_all <- merge_all(list(roc_only,roc_4_only, roc_5_only, roc_6_only), by=c("models", "V1", "V2"))
-rocs_all$models <- factor(rocs_all$models, levels=c("1", "3", "4", "5"), labels=c("Albumin", 
-                                                                                  "HCT", "HGB", "only AIS"))
+rocs_all <- merge_all(list(roc_only, roc_6_only), by=c("models", "V1", "V2"))
+rocs_all$models <- factor(rocs_all$models, levels=c("1", "5"), labels=c("Albumin + confounders", "only AIS"))
 
 ggplot(data=rocs_all, aes(rocs_all$V1, rocs_all$V2, colour=models))+
   geom_path()+
   theme_bw()+
   cleanup+
-  ggtitle("ROC Curves for Multivariate Models")+
-  labs(x="Specificity", y="Sensitivity", fill="Multivariate Models")+
-  labs(caption = "AUC For Albumin/HCT/HGB = 0.9
-       AUC for AIS only =0.86")
+  labs(x="1 - Specificity", y="Sensitivity", fill="Multivariate Models")+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=18,face="bold"),
+        strip.text.x = element_text(size = 14))+
+  geom_abline(intercept =0 , slope = 1)+
+  annotate("text", x=0.65, y=0.25, label= "AUC for Albumin + confounders = 0.9
+       AUC for AIS only = 0.86")
 
 #URP
-URP_MR <- ctree(Marked_Recovery_Annual ~ CRLOWALBUMIN+CRLOWPREALBUMIN+CRLOWESTHCT+CRLOWESTHGB+LOWER_MS_SURG+REVIEWASIAGRADEADM, data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)))
+URP_MR <- ctree(Marked_Recovery_Annual ~ CRLOWALBUMIN+CRLOWPREALBUMIN, data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)&REVIEWASIAGRADEADM=="D"))
 plot(URP_MR)
 
 
@@ -789,3 +925,15 @@ walk <- data.frame(table(ADDEP_1$AFLMODDS,ADDEP_1$ASIA_CHANGE_updated))
 names(walk) <- c("Walk","Converted","Count")
 
 ggplot(data=walk, aes(x=Converted, y=Count, fill=Walk)) + geom_bar(stat="identity")
+
+
+stargazer(cbind("OR"=exp(coef(glm_2_1y)),
+                exp(confint(glm_2_1y)),
+                "SE" = summary(glm_2_1y)$coefficients[,2],
+                "P value" = summary(glm_2_1y)$coefficients[,4]), type = "text")
+
+describeBy(ADDEP_2$AGE_INJ, group=is.na(ADDEP_2$Marked_Recovery_Annual))
+
+stargazer(cbind("Marked Recovery"=summary(ADDEP_2$Marked_Recovery),
+                "Sex"=summary(ADDEP_2$SEX)), type = "text")
+
