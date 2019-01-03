@@ -67,7 +67,15 @@ ADDEP_2$NEWASIAGRADE <- as.factor(paste0("AIS ", ADDEP_2$REVIEWASIAGRADEADM))
 
 ADDEP_2 <- merge(ADDEP_2, ALB_DAYS, by = "NEWID", all=TRUE)
 
+ADDEP_2$AGE_BINARY <- as.factor(ifelse(ADDEP_2$AGE_INJ_NUM=="1"|ADDEP_2$AGE_INJ_NUM=="2"|
+                                         ADDEP_2$AGE_INJ_NUM=="3"|ADDEP_2$AGE_INJ_NUM=="4", 0,1))
+
 ASIA <- ADDEP_2[,c("ASIA_CHANGE_updated_3", "Marked_Recovery_Annual", "REVIEWASIAGRADEADM", "BASAIMP", "WALK_ANNUAL_updated", "BFIMLMOD")]
+
+ADDEP_outcome <- ADDEP_2[c("NEWID", "CRLOWALBUMIN", "LOWER_MS_ANNUAL", "REVIEWASIAGRADEADM","BASAIMP", "BFIMLMOD", "Marked_Recovery_Annual")]
+
+ADDEP_2$AIS_BINARY <- as.factor(ifelse(ADDEP_2$REVIEWASIAGRADEADM=="A"|ADDEP_2$REVIEWASIAGRADEADM=="B", "Complete", "Incomplete"))
+
 #Descriptive Statistics 
 fun <- function(x){
   c(m=mean(x, na.rm=T), v=sd(x, na.rm=T), n=length(x))
@@ -153,23 +161,28 @@ AIS_MR <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(y=CRL
         axis.text.x=element_blank())+
   labs(y="Albumin concentration [g/dL]")
 
-MR <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual, fill=Marked_Recovery_Annual))+
+ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)&LOWER_MS_REHAB<40&ASIA_LEVEL_DIS==c("C", "T")), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual, fill=Marked_Recovery_Annual))+
   geom_boxplot()+
   geom_jitter(width=0.2, alpha=0.6)+
-  scale_fill_manual(name = "Marked recovery at annual exam", values=c("lightskyblue4", "lightblue1")
+  scale_fill_manual(name = "Marked recovery 1 year post-injury", values=c("lightskyblue4", "lightblue1")
                     , labels = c("0" = "Not Achieved", "1" = "Achieved"))+
-  scale_y_continuous(limits = c(0,5))+
   cleanup+
+  facet_grid(.~AIS_BINARY)+
+  scale_y_continuous(limits = c(0,5))+
   scale_x_discrete(labels=c("0" = "Not Achieved", "1" = "Achieved"))+
   theme(axis.text=element_text(size=11),
         axis.title=element_text(size=12),
         strip.text.x = element_text(size = 12), 
         axis.title.x=element_blank(),
         axis.ticks.x=element_blank(), 
-        axis.text.x=element_blank(),
-        legend.position="none", 
-        panel.border = element_blank())+
-  labs(y="Albumin concentration [g/dL]")+
+        axis.text.x=element_blank())+
+  labs(y="Albumin concentration [g/dL]")
+
+
+MR <- ggplot(data=subset(ADDEP_2, !is.na(Marked_Recovery_Annual)), aes(y=CRLOWALBUMIN, x=Marked_Recovery_Annual, fill=Marked_Recovery_Annual))+
+  geom_boxplot()+
+  geom_jitter(width=0.2, alpha=0.6)+
+  scale_fill_manual+
   annotate("text", x = 1.5, y=4.8, label= "p < .001 \n ORs = 3.45", size=3)
 
 
@@ -311,21 +324,19 @@ influential_obs <- influence.measures(lm_1)
 ADDEP_influential_obs <- which(apply(influential_obs$is.inf, 1, any)) 
 ADDEP_sans_influential_obs <- ADDEP_1[-ADDEP_influential_obs,] 
 
-lm_2 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN*REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+
-             SPL_SURG_NUM, data=ADDEP_1)
+lm_2 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+AGE_BINARY, data=subset(ADDEP_2, ASIA_LEVEL_DIS==c("C", "T")))
 
 #heteroscedasticity corrected se
 coeftest(lm_4, vcov. = vcovHC(lm_4))
 
 
-lm_3 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+SEX_NUM+AGE_INJ_NUM+
-  SPL_SURG_NUM+REVIEWASIAGRADEADM, data=subset(ADDEP_2, CRLOWALBUMINDAYS < 14))
+lm_3 <- lm(LOWER_MS_ANNUAL~AGE_BINARY+LOWER_MS_REHAB, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)))
 
-lm_4 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+CRLOWALBUMINDAYS+SEX_NUM+AGE_INJ_NUM+
-  REVIEWASIAGRADEADM+ASIA_LEVEL_DIS, data= ADDEP_2)
+lm_3b <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+AGE_BINARY+LOWER_MS_REHAB, data=subset(ADDEP_2, ASIA_LEVEL_DIS==c("C", "T")))
 
-lm_5 <- lm(LOWER_MS_ANNUAL~SEX_NUM+AGE_INJ_NUM+
-             REVIEWASIAGRADEADM+ASIA_LEVEL_DIS+CRLOWALBUMINDAYS, data= subset(ADDEP_2, !is.na(CRLOWALBUMIN)))
+lm_4 <- lm(LOWER_MS_ANNUAL~CRLOWALBUMIN+AGE_BINARY+LOWER_MS_REHAB+REVIEWASIAGRADEADM,data=subset(ADDEP_2, ASIA_LEVEL_DIS==c("C", "T")))
+
+lm_5 <- lm(LOWER_MS_ANNUAL~AGE_BINARY+LOWER_MS_REHAB+REVIEWASIAGRADEADM, data= subset(ADDEP_2, !is.na(CRLOWALBUMIN)))
 
 anova(lm_4, lm_5, test="Chisq")
 
@@ -366,9 +377,9 @@ Fig_Alb
 
 #Set-validation 
 set.seed(2000)
-sample <- sample(seq(1, nrow(ADDEP_noASIA)), replace=FALSE)
-training <- ADDEP_noASIA[sample[1:1199],]
-test <-ADDEP_noASIA[sample[1200:nrow(ADDEP_noASIA)],]
+sample <- sample(seq(1, nrow(ADDEP_2)), replace=FALSE)
+training <- ADDEP_2[sample[1:1199],]
+test <-ADDEP_2[sample[1200:nrow(ADDEP_2)],]
 
 
 smp_size <- floor(0.95 * nrow(ADDEP_noASIA))
@@ -797,16 +808,20 @@ ggplot(pr_all, aes(pr_all$V1, pr_all$V2, colour=models))+
 #Marked Recovery at 1 year 
 #Low Alb
 
-glm_2_1y <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS, data=training, family="binomial")
+glm_2_1y <- glm(Marked_Recovery_Annual ~ AGE_BINARY+LOWER_MS_REHAB, data=training, family="binomial")
 
-glm_2_1y_2 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS+CRLOWALBUMINDAYS, data=ADDEP_2, family="binomial")
+glm_2_1y_2 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN, data=ADDEP_2, family="binomial")
 
-glm_2_1y_3 <- glm(Marked_Recovery_Annual ~ REVIEWASIAGRADEADM+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS+CRLOWALBUMINDAYS, data=subset(ADDEP_2,!is.na(CRLOWALBUMIN)), family="binomial")
+glm_2_1y_3 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+AGE_BINARY, data=ADDEP_2, family="binomial")
 
-glm_2_1y_2_AIS <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+SEX_NUM+AGE_INJ_NUM+ASIA_LEVEL_DIS+CRLOWALBUMINDAYS, data=subset(ADDEP_2, REVIEWASIAGRADEADM=="D"), family="binomial")
+glm_2_1y_4 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+AGE_BINARY+LOWER_MS_REHAB, data=ADDEP_2, family="binomial")
+
+glm_2_1y_5 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+AGE_BINARY+LOWER_MS_REHAB, subset=REVIEWASIAGRADEADM=="D", data=subset(ADDEP_2, CRLOWALBUMINDAYS <30), family="binomial")
+
+glm_2_1y_2_AIS <- glm(Marked_Recovery_Annual ~AGE_BINARY+LOWER_MS_REHAB+REVIEWASIAGRADEADM, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)), family="binomial")
 
 
-pR2(glm_2_1y_3)
+pR2(glm_2_1y_4)
 
 anova(glm_2_1y_2, glm_2_1y_3, test="Chisq")
 
@@ -823,7 +838,7 @@ library(ROCR)
 perf_1y <- performance(pred_glm_2_1y, "sens", "spec")
 plot(perf_1y)
 
-glm_2_pred_1y <- ifelse(prob_glm_2_1y>0.27, 1, 0)
+glm_2_pred_1y <- ifelse(prob_glm_2_1y>0.3, 1, 0)
 glm_2_accuracy_1y <- table(glm_2_pred_1y, test$Marked_Recovery_Annual)
 sensitivity(glm_2_accuracy_1y)
 specificity(glm_2_accuracy_1y)
@@ -1034,7 +1049,7 @@ stargazer(cbind("OR"=exp(coef(glm_2_1y_2_AIS)),
                 exp(confint(glm_2_1y_2_AIS)),
                 "P value" = summary(glm_2_1y_2_AIS)$coefficients[,4]), type = "text")
 
-describeBy(ADDEP_2$CRLOWALBUMINDAYS, group=is.na(ADDEP_2$Marked_Recovery_Annual))
+describeBy(ADDEP_2$SEX, group=is.na(ADDEP_2$Marked_Recovery_Annual))
 
 stargazer(cbind("Marked Recovery"=summary(ADDEP_2$Marked_Recovery),
                 "Sex"=summary(ADDEP_2$SEX)), type = "text")
