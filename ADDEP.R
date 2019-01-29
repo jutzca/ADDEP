@@ -76,6 +76,8 @@ ADDEP_outcome <- ADDEP_2[c("NEWID", "CRLOWALBUMIN", "LOWER_MS_ANNUAL", "REVIEWAS
 
 ADDEP_2$AIS_BINARY <- as.factor(ifelse(ADDEP_2$REVIEWASIAGRADEADM=="A"|ADDEP_2$REVIEWASIAGRADEADM=="B", "Complete", "Incomplete"))
 
+ADDEP_3$Marked_Recovery_Annual_2 <- as.factor(ADDEP_3$Marked_Recovery_Annual_2)
+
 #Descriptive Statistics 
 fun <- function(x){
   c(m=mean(x, na.rm=T), v=sd(x, na.rm=T), n=length(x))
@@ -819,6 +821,10 @@ glm_2_1y_4 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+AGE_BINARY+LOWER_MS_REHA
 glm_2_1y_5 <- glm(Marked_Recovery_Annual ~ CRLOWALBUMIN+AGE_BINARY+LOWER_MS_REHAB, subset=REVIEWASIAGRADEADM=="D", data=subset(ADDEP_2, CRLOWALBUMINDAYS <30), family="binomial")
 
 glm_2_1y_2_AIS <- glm(Marked_Recovery_Annual ~AGE_BINARY+LOWER_MS_REHAB+REVIEWASIAGRADEADM, data=subset(ADDEP_2, !is.na(CRLOWALBUMIN)), family="binomial")
+
+#Low Alb for new inclusion criteria 
+
+glm_new_inc <- glm(Marked_Recovery_Annual_2 ~ CRLOWALBUMIN+AGE_BINARY+REVIEWASIAGRADEADM, family="binomial", data=subset(ADDEP_3, !(Walk_Admission==1)&CRLOWALBUMINDAYS <31&LOWER_MS_REHAB<40&ASIA_LEVEL_DIS==c("C", "T")))
 
 
 pR2(glm_2_1y_4)
