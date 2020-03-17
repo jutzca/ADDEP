@@ -1,4 +1,4 @@
-# DATA CLEANING 
+# DATA CLEANING
 ## The original dataset is "DS1.csv". However, to respect the original file, we saved it as "ADDEP" in our data analysis. 
 ### In "ADDEP", we only included relevant info from "DS1.csv", changed the individual motor scores names and converted them into numeric.
 ### For example, "AASAC5AL" in "DS1.csv" is changed to "C5_R_SURG" in our "ADDEP.xlsx" based on the data dictionary.
@@ -192,6 +192,46 @@ URP_AIS_baseline <-use_labels(ADDEP_3, ctree(ASIAGRADE_WALK ~ CRLOWALBUMIN,contr
 plot(URP_AIS_baseline, terminal_panel=node_barplot(URP_AIS_baseline))
 
 # URP for annual 
+# Subset data for Change scores then split 
+ADDEP_CS_subset <- subset(ADDEP_3, !is.na(Change_Scores)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+set.seed(4567)
+sample_CS <- ADDEP_CS_subset$Change_Scores %>% 
+  createDataPartition(p = 0.7, list = FALSE)
+train_ADDEP_CS  <- ADDEP_CS_subset[sample_CS, ]
+test_ADDEP_CS <- ADDEP_CS_subset[-sample_CS, ]
+
+URP_CS_1y <- train(
+  Change_Scores ~ CRLOWALBUMIN, data = train_ADDEP_CS, method = "ctree", na.action = na.omit, 
+  trControl = trainControl("cv", number = 10), tuneLength=.1
+)
+
+predict_CS_1y <- cbind(as.data.frame(predict(URP_CS_1y, newdata=test_ADDEP_CS)), test_ADDEP_CS$Change_Scores)
+colnames(predict_CS_1y) <- c("predicted","actuals")
+postResample(pred = predict_CS_1y$predicted, obs = predict_CS_1y$actuals)
+
+# Subset data for Marked Recovery and split 
+ADDEP_MR_subset <- subset(ADDEP_3, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+set.seed(4567)
+sample_MR <- ADDEP_MR_subset$Marked_Recovery_Annual_2 %>% 
+  createDataPartition(p = 0.7, list = FALSE)
+train_ADDEP_MR <- ADDEP_MR_subset[sample_MR, ]
+test_ADDEP_MR <- ADDEP_MR_subset[-sample_MR, ]
+
+URP_MR_1y <- train(
+  Marked_Recovery_Annual_2 ~ CRLOWALBUMIN, data = train_ADDEP_MR, method = "ctree", na.action = na.omit, 
+  trControl = trainControl("cv", number = 10), tuneLength=.1
+)
+
+predict_MR_1y <- predict(URP_MR_1y, newdata=test_ADDEP_MR, type='prob')
+predict_MR_1y <- prediction(predict_MR_1y[,2], test_ADDEP_MR$Marked_Recovery_Annual_2)
+predict_MR_1y <- cbind(as.data.frame(predict_MR_1y@predictions), as.data.frame(predict_MR_1y@labels))
+colnames(predict_MR_1y) <- c("prob","actuals")
+autoplot(evalmod(scores = predict_MR_1y$prob, labels = predict_MR_1y$actuals))
+
+confusionMatrix(predict(URP_MR_1y, newdata=test_ADDEP_MR), test_ADDEP_MR$Marked_Recovery_Annual_2)
+
 ## Univariate URP for Change Scores 
 plot(use_labels(ADDEP_3,ctree(Change_Scores ~ CRLOWALBUMIN, data=subset(..data, !is.na(Change_Scores)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
 
@@ -203,3 +243,8 @@ plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN, data=subset
 
 # Bivariate URP for Marked Recovery annual 
 plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN+REVIEWASIAGRADEADM, data=subset(..data, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+
+#Descriptives
+
+describeBy(Factors_Overtime_Anemia$Factor2_w0, is.na(Factors_Overtime_Anemia$TLAMS52))
+

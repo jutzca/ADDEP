@@ -1,0 +1,203 @@
+---
+title: "ADDEP Analysis"
+author: "AKV"
+date: "3/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+setwd("/Users/user/Documents/AK/ADDEP/")
+load("ADDEP.RData")
+```
+
+#Analysis for ADDEP dataset 
+
+##Data Cleaning has been done in the background. Refer to https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R
+
+#Baseline Association 
+
+These following two figures are to see if Albumin is associated with LEMS and AIS grades at baseline:
+```{graphs, warning=FALSE}
+library(ggplot2)
+library(ggpubr)
+cleanup <- theme(panel.grid.major = element_blank(),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(),
+                 axis.line = element_line(colour="gray"),
+                 plot.title = element_text(size = rel(1.2), 
+                                           vjust = 1.5, 
+                                           hjust = 0.5),
+                 plot.subtitle = element_text(size = rel(1), 
+                                              vjust = 1.5, 
+                                              hjust = 0.5,
+                                              face="italic"),
+                 panel.border=element_rect(colour="gray",
+                                           size=1, 
+                                           fill=NA), 
+                 panel.spacing = unit(0.2, "lines"),
+                 axis.ticks.y = element_line(colour="gray"), 
+                 axis.ticks.x = element_line(colour="gray"))
+
+ALB_LEMS <- ggplot(data=subset(ADDEP_3, !is.na(ASIAGRADE_WALK)&ASIA_LEVEL_DIS==c("C", "T")&!is.na(CRLOWALBUMIN)), aes(x=CRLOWALBUMIN, y=LOWER_MS_REHAB, colour = ASIAGRADE_WALK))+
+  geom_jitter(width=0.2, alpha=0.6)+
+  scale_x_continuous(limits = c(0,5))+
+  cleanup+
+  theme(axis.text=element_text(size=11),
+        axis.title=element_text(size=12),
+        strip.text.x = element_text(size = 12),
+        panel.border = element_blank(),
+        legend.position='bottom',
+        legend.key=element_blank())+
+  labs(colour='AIS Grades') +
+  labs(y="LEMS at Rehab Admission", x="Albumin concentration [g/dL]") 
+
+ALB_AIS <- ggplot(data=subset(ADDEP_3, !is.na(ASIAGRADE_WALK)&ASIA_LEVEL_DIS==c("C", "T")&!is.na(CRLOWALBUMIN)), aes(y=CRLOWALBUMIN, x=ASIAGRADE_WALK, colour=ASIAGRADE_WALK))+
+  geom_boxplot()+
+  geom_jitter(width=0.2, alpha=0.6)+
+  scale_y_continuous(limits = c(0,5))+
+  cleanup+
+  theme(axis.text=element_text(size=11),
+        axis.title=element_text(size=12),
+        strip.text.x = element_text(size = 12), 
+        axis.title.x=element_blank(),
+        axis.ticks.x=element_blank(), 
+        axis.text.x=element_blank(), 
+        panel.border = element_blank(),
+        legend.key=element_blank())+
+  labs(colour='AIS Grades')+
+  labs(y="Albumin concentration [g/dL]", x="AIS grades") 
+```
+
+
+```{r, both graphs, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+library("ggpubr")
+ggarrange(ALB_LEMS, ALB_AIS, nrow=2, labels = c("A", "B"),common.legend = TRUE, legend = "bottom")
+```
+
+#URP for Admission 
+For baseline association, we included only C and T participants and excluded all NAs in Albumin. In addition, all NAs in the outcomes (LEMS baseline, and AIS grades baseline) are also excluded. 
+
+##URP for LEMS baseline:
+
+```{r, URP LEMS baseline, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+library("expss")
+library("party")
+ADDEP_3 = apply_labels(ADDEP_3, CRLOWALBUMIN = "Min Albumin Concentration", 
+                       LOWER_MS_REHAB = "LEMS at Admission", ASIAGRADE_WALK = "AIS Grades at Admission")
+
+URP_LEMS_baseline <-use_labels(ADDEP_3, ctree(LOWER_MS_REHAB ~ CRLOWALBUMIN, controls=ctree_control(testtype = "Bonferroni",
+                                                                                                    mincriterion = 0.95), data=subset(..data, !is.na(LOWER_MS_REHAB)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))))
+
+plot(URP_LEMS_baseline)
+```
+
+URP for AIS grades baseline:
+
+```{r, URP AIS baseline, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+library("expss")
+
+URP_AIS_baseline <-use_labels(ADDEP_3, ctree(ASIAGRADE_WALK ~ CRLOWALBUMIN,controls=ctree_control(testtype = "Bonferroni",
+                                                                                                  mincriterion = 0.95), data=subset(..data, !is.na(ASIAGRADE_WALK)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))))
+
+plot(URP_AIS_baseline, terminal_panel=node_barplot(URP_AIS_baseline))
+```
+
+#URP for 1 year 
+
+For 1 year, the inclusion criteria are: participants who were non-ambulatory at admission to rehabilitation were included, C & T level only, completed assessment of albumin, and neurological outcomes.
+
+##URP for change scores (univariate)
+```{r, URP change scores uni, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+plot(use_labels(ADDEP_3,ctree(Change_Scores ~ CRLOWALBUMIN, data=subset(..data, !is.na(Change_Scores)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+```
+
+##Subset data for change scores then split
+
+Splitting data into 70% training, and 30% testing. The evaluation metrics for training sample is:
+```{r, URP CS Train, warning=FALSE}
+library("caret")
+ADDEP_CS_subset <- subset(ADDEP_3, !is.na(Change_Scores)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+set.seed(4567)
+sample_CS <- ADDEP_CS_subset$Change_Scores %>% 
+  createDataPartition(p = 0.7, list = FALSE)
+train_ADDEP_CS  <- ADDEP_CS_subset[sample_CS, ]
+test_ADDEP_CS <- ADDEP_CS_subset[-sample_CS, ]
+
+URP_CS_1y <- train(
+  Change_Scores ~ CRLOWALBUMIN, data = train_ADDEP_CS, method = "ctree", na.action = na.omit, 
+  trControl = trainControl("cv", number = 10), tuneLength=.1
+)
+
+URP_CS_1y
+```
+
+Predicting on the 30% unseeen test data. The evaluation metrics for testing sample is: 
+```{r, URP CS Test, warning=FALSE}
+predict_CS_1y <- cbind(as.data.frame(predict(URP_CS_1y, newdata=test_ADDEP_CS)), test_ADDEP_CS$Change_Scores)
+
+colnames(predict_CS_1y) <- c("predicted","actuals")
+postResample(pred = predict_CS_1y$predicted, obs = predict_CS_1y$actuals)
+```
+
+Our model is not overfitting since RMSE between test and train samples are not vastly different. 
+
+##URP for change scores (bivariate)
+```{r, URP change scores bi, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+plot(use_labels(ADDEP_3,ctree(Change_Scores ~ CRLOWALBUMIN+LOWER_MS_REHAB, data=subset(..data, !is.na(Change_Scores)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+```
+
+##URP for Marked Recovery (univariate)
+```{r, URP MR uni, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN, data=subset(..data, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+```
+
+#Subset data for Marked Recovery then split
+
+Splitting data is similar to Change Score analysis above. The evaluation metrics for training sample is:
+```{r, URP MR Train, warning=FALSE}
+ADDEP_MR_subset <- subset(ADDEP_3, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+set.seed(4567)
+sample_MR <- ADDEP_MR_subset$Marked_Recovery_Annual_2 %>% 
+  createDataPartition(p = 0.7, list = FALSE)
+train_ADDEP_MR <- ADDEP_MR_subset[sample_MR, ]
+test_ADDEP_MR <- ADDEP_MR_subset[-sample_MR, ]
+
+URP_MR_1y <- train(
+  Marked_Recovery_Annual_2 ~ CRLOWALBUMIN, data = train_ADDEP_MR, method = "ctree", na.action = na.omit, 
+  trControl = trainControl("cv", number = 10), tuneLength=.1
+)
+```
+
+Predicting on the 30% unseeen test data. The AUC for ROC and PR curves are: 
+```{r, URP MR Test, warning=FALSE}
+library("precrec")
+library("ROCR")
+predict_MR_1y <- predict(URP_MR_1y, newdata=test_ADDEP_MR, type='prob')
+predict_MR_1y <- prediction(predict_MR_1y[,2], test_ADDEP_MR$Marked_Recovery_Annual_2)
+predict_MR_1y <- cbind(as.data.frame(predict_MR_1y@predictions), as.data.frame(predict_MR_1y@labels))
+colnames(predict_MR_1y) <- c("prob","actuals")
+evalmod(scores = predict_MR_1y$prob, labels = predict_MR_1y$actuals)
+```
+
+The plot for ROC and PR curves:
+```{r, plot ROC and PR curves, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+autoplot(evalmod(scores = predict_MR_1y$prob, labels = predict_MR_1y$actuals))
+```
+
+Confusion matrix: 
+```{r, confusion matrix, warning=FALSE}
+confusionMatrix(predict(URP_MR_1y, newdata=test_ADDEP_MR), test_ADDEP_MR$Marked_Recovery_Annual_2)
+```
+
+##URP for Marked Recovery (bivariate)
+```{r, URP MR bi, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+ADDEP_3$REVIEWASIAGRADEADM<- as.factor(ADDEP_3$REVIEWASIAGRADEADM)
+
+plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN+REVIEWASIAGRADEADM, data=subset(..data, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+```
