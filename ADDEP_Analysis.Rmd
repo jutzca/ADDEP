@@ -16,7 +16,7 @@ load("ADDEP.RData")
 
 #Analysis for ADDEP dataset 
 
-##Data Cleaning has been done in the background. Refer to https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R
+##Data Cleaning has been done separately. Click [here](https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R) for the R code.
 
 #Baseline Association 
 

@@ -177,7 +177,7 @@ ALB_AIS <- ggplot(data=subset(ADDEP_3, !is.na(ASIAGRADE_WALK)&ASIA_LEVEL_DIS==c(
 ggarrange(ALB_LEMS, ALB_AIS, nrow=2, labels = c("A", "B"),common.legend = TRUE, legend = "bottom")
 
 #URP for admission
-ADDEP_3 = apply_labels(ADDEP_3, CRLOWALBUMIN = "Min Albumin Concentration", 
+ADDEP_3 = apply_labels(ADDEP_3, CRLOWALBUMIN = "Min Albumin Concentration",
                        LOWER_MS_REHAB = "LEMS at Admission", ASIAGRADE_WALK = "AIS Grades at Admission")
 
 URP_LEMS_baseline <-use_labels(ADDEP_3, ctree(LOWER_MS_REHAB ~ CRLOWALBUMIN, controls=ctree_control(testtype = "Bonferroni",
