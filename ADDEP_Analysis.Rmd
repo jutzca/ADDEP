@@ -172,6 +172,7 @@ URP_MR_1y <- train(
   Marked_Recovery_Annual_2 ~ CRLOWALBUMIN, data = train_ADDEP_MR, method = "ctree", na.action = na.omit, 
   trControl = trainControl("cv", number = 10), tuneLength=.1
 )
+URP_MR_1y
 ```
 
 Predicting on the 30% unseeen test data. The AUC for ROC and PR curves are: 
