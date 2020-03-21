@@ -245,6 +245,41 @@ plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN, data=subset
 plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN+REVIEWASIAGRADEADM, data=subset(..data, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
 
 #Descriptives
+#Descriptives for days of recorded albumin and between injury dates and admission for both outcomes at 1 year 
+skim(subset(ADDEP_3,!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))$CRLOWALBUMINDAYS)
+skim(subset(ADDEP_3,!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))$DAYS_INJ2ADM)
 
-describeBy(Factors_Overtime_Anemia$Factor2_w0, is.na(Factors_Overtime_Anemia$TLAMS52))
+#Shared dataset between 2 outcomes for 1 year
+z<-subset(ADDEP_3,!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
 
+#Descriptives stats between included and excluded in Change scores
+xtabs(~SEX+is.na(z$Change_Scores), data=z)
+xtabs(~AGE_BINARY+is.na(z$Change_Scores), data=z)
+xtabs(~REVIEWASIAGRADEADM+is.na(z$Change_Scores), data=z)
+xtabs(~ASIA_LEVEL_ADM+is.na(z$Change_Scores), data=z)
+describeBy(z$CRLOWALBUMIN, is.na(z$Change_Scores))
+
+#Descriptives stats between included and excluded in Marked Recovery 
+xtabs(~SEX+is.na(z$Marked_Recovery_Annual_2), data=z)
+xtabs(~AGE_BINARY+is.na(z$Marked_Recovery_Annual_2), data=z)
+xtabs(~REVIEWASIAGRADEADM+is.na(z$Marked_Recovery_Annual_2), data=z)
+xtabs(~ASIA_LEVEL_ADM+is.na(z$Marked_Recovery_Annual_2), data=z)
+describeBy(z$CRLOWALBUMIN, is.na(z$Marked_Recovery_Annual_2))
+
+#Descrptives stats at baseline
+#Shared data between two outcomes
+y <- subset(ADDEP_3, ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+#Descriptives stats between included and excluded in LEMS baseline
+xtabs(~SEX+is.na(y$LOWER_MS_REHAB), data=y)
+xtabs(~AGE_BINARY+is.na(y$LOWER_MS_REHAB), data=y)
+xtabs(~ASIAGRADE_WALK+is.na(y$LOWER_MS_REHAB), data=y)
+xtabs(~ASIA_LEVEL_ADM+is.na(y$LOWER_MS_REHAB), data=y)
+describeBy(y$CRLOWALBUMIN, is.na(y$LOWER_MS_REHAB))
+
+#Descriptives stats between included and excluded in AIS grades baseline
+xtabs(~SEX+is.na(y$ASIAGRADE_WALK), data=y)
+xtabs(~AGE_BINARY+is.na(y$ASIAGRADE_WALK), data=y)
+xtabs(~ASIAGRADE_WALK+is.na(y$ASIAGRADE_WALK), data=y)
+xtabs(~ASIA_LEVEL_ADM+is.na(y$ASIAGRADE_WALK), data=y)
+describeBy(y$CRLOWALBUMIN, is.na(y$ASIAGRADE_WALK))
