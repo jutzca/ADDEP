@@ -1,4 +1,16 @@
 # DATA CLEANING
+##Libraries used
+library("caret")
+library("skimr")
+library("party")
+library("stats")
+library("psych")
+library("expss")
+library("readr")
+library("base")
+library("ROCR")
+library("precrec")
+
 ## The original dataset is "DS1.csv". However, to respect the original file, we saved it as "ADDEP" in our data analysis. 
 ### In "ADDEP", we only included relevant info from "DS1.csv", changed the individual motor scores names and converted them into numeric.
 ### For example, "AASAC5AL" in "DS1.csv" is changed to "C5_R_SURG" in our "ADDEP.xlsx" based on the data dictionary.
