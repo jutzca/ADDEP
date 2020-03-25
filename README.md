@@ -1,6 +1,7 @@
 # Serum albumin and neurological recovery after spinal cord injury
 
 **Aim**: To investigate if albumin is significantly associated with outcomes after acute spinal cord injury. 
+
 **Data Source**: ADDEP Dataset
 
 Our data cleaning + wrangling process can be found [here](https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R)
