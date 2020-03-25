@@ -18,6 +18,23 @@ load("ADDEP.RData")
 
 ##Data Cleaning has been done separately. Click [here](https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R) for the R code.
 
+##Descriptive statistics for Baseline Association 
+
+###Lower Extremity Motor Scores at baseline analyis
+```{r, descriptive for LEMS baseline, warning=FALSE }
+library(table1)
+y <- subset(ADDEP_3, ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+#Descriptives stats between included (FALSE) and excluded (TRUE) in LEMS baseline
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(LOWER_MS_REHAB), data=y)
+```
+
+### AIS Grades at baseline analysis 
+```{r, descriptive for AIS baseline, warning=FALSE }
+#Descriptives stats between included (FALSE) and excluded (TRUE) in AIS Grades baseline
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(ASIAGRADE_WALK), data=y)
+```
+
 #Baseline Association 
 
 These following two figures are to see if Albumin is associated with LEMS and AIS grades at baseline:
@@ -104,6 +121,23 @@ URP_AIS_baseline <-use_labels(ADDEP_3, ctree(ASIAGRADE_WALK ~ CRLOWALBUMIN,contr
                                                                                                   mincriterion = 0.95), data=subset(..data, !is.na(ASIAGRADE_WALK)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))))
 
 plot(URP_AIS_baseline, terminal_panel=node_barplot(URP_AIS_baseline))
+```
+
+##Descriptive Statistics for 1-year Analysis
+
+###Change Scores Analysis 
+```{r, descriptive Change Scores, warning=FALSE}
+#Shared dataset between 2 outcomes for 1 year
+z<-subset(ADDEP_3,!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
+
+#Descriptives stats between included (FALSE) and excluded (TRUE) in Change scores
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(Change_Scores), data=z)
+```
+
+###Marked Recovery Analysis
+```{r, descriptive Marked Recovery, warning=FALSE}
+#Descriptives stats between included (FALSE) and excluded (TRUE) in Marked Recovery 
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(Marked_Recovery_Annual_2), data=z)
 ```
 
 #URP for 1 year 
@@ -196,9 +230,15 @@ Confusion matrix:
 confusionMatrix(predict(URP_MR_1y, newdata=test_ADDEP_MR), test_ADDEP_MR$Marked_Recovery_Annual_2)
 ```
 
+Univariate URP for Marked Recovery has 75% accuracy, and it's mostly accurate in predicting for cases who did not achieve marked recovery. 
+
 ##URP for Marked Recovery (bivariate)
 ```{r, URP MR bi, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
 ADDEP_3$REVIEWASIAGRADEADM<- as.factor(ADDEP_3$REVIEWASIAGRADEADM)
 
 plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN+REVIEWASIAGRADEADM, data=subset(..data, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
 ```
+
+#Summary 
+
+At admission to rehabiliation, lower serum albumin was associated with more severe spinal cord injury. However, at 1-year post-injury analysis, serum albumin was not significant after adjusting for injury characteristics. This suggest serum albumin is more useful when neurological details at admission (i.e., LEMS or AIS grade at baseline) are not available. 

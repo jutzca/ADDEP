@@ -10,6 +10,7 @@ library("readr")
 library("base")
 library("ROCR")
 library("precrec")
+library("table1")
 
 ## The original dataset is "DS1.csv". However, to respect the original file, we saved it as "ADDEP" in our data analysis. 
 ### In "ADDEP", we only included relevant info from "DS1.csv", changed the individual motor scores names and converted them into numeric.
@@ -30,7 +31,7 @@ ASIA_updated$AFLMODDS <-  as.factor(parse_number(ASIA_updated$AFLMODDS))
 ASIA_updated$ASIA_LEVEL_ADM <- as.factor(substring(ASIA_updated$REVIEWASIALEVELADM, 1, 1))
 ASIA_updated$ASIA_LEVEL_DIS <- as.factor(substring(ASIA_updated$REVIEWASIALEVELDC, 1, 1))
 
-# New one
+# Creating new dataset and new outcome 
 ADDEP_1 <- merge(ADDEP, ASIA_updated, by = "NEWID", all=TRUE)
 ADDEP_1$REVIEWASIAGRADEADM <- as.factor(ADDEP_1$REVIEWASIAGRADEADM)
 
@@ -265,33 +266,18 @@ skim(subset(ADDEP_3,!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLO
 z<-subset(ADDEP_3,!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
 
 #Descriptives stats between included and excluded in Change scores
-xtabs(~SEX+is.na(z$Change_Scores), data=z)
-xtabs(~AGE_BINARY+is.na(z$Change_Scores), data=z)
-xtabs(~REVIEWASIAGRADEADM+is.na(z$Change_Scores), data=z)
-xtabs(~ASIA_LEVEL_ADM+is.na(z$Change_Scores), data=z)
-describeBy(z$CRLOWALBUMIN, is.na(z$Change_Scores))
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(Change_Scores), data=z)
 
 #Descriptives stats between included and excluded in Marked Recovery 
-xtabs(~SEX+is.na(z$Marked_Recovery_Annual_2), data=z)
-xtabs(~AGE_BINARY+is.na(z$Marked_Recovery_Annual_2), data=z)
-xtabs(~REVIEWASIAGRADEADM+is.na(z$Marked_Recovery_Annual_2), data=z)
-xtabs(~ASIA_LEVEL_ADM+is.na(z$Marked_Recovery_Annual_2), data=z)
-describeBy(z$CRLOWALBUMIN, is.na(z$Marked_Recovery_Annual_2))
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(Marked_Recovery_Annual_2), data=z)
 
 #Descrptives stats at baseline
 #Shared data between two outcomes
 y <- subset(ADDEP_3, ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN))
 
 #Descriptives stats between included and excluded in LEMS baseline
-xtabs(~SEX+is.na(y$LOWER_MS_REHAB), data=y)
-xtabs(~AGE_BINARY+is.na(y$LOWER_MS_REHAB), data=y)
-xtabs(~ASIAGRADE_WALK+is.na(y$LOWER_MS_REHAB), data=y)
-xtabs(~ASIA_LEVEL_ADM+is.na(y$LOWER_MS_REHAB), data=y)
-describeBy(y$CRLOWALBUMIN, is.na(y$LOWER_MS_REHAB))
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(LOWER_MS_REHAB), data=y)
 
 #Descriptives stats between included and excluded in AIS grades baseline
-xtabs(~SEX+is.na(y$ASIAGRADE_WALK), data=y)
-xtabs(~AGE_BINARY+is.na(y$ASIAGRADE_WALK), data=y)
-xtabs(~ASIAGRADE_WALK+is.na(y$ASIAGRADE_WALK), data=y)
-xtabs(~ASIA_LEVEL_ADM+is.na(y$ASIAGRADE_WALK), data=y)
-describeBy(y$CRLOWALBUMIN, is.na(y$ASIAGRADE_WALK))
+table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(ASIAGRADE_WALK), data=y)
+
