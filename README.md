@@ -1,13 +1,14 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # ADDEP dataset
 This is an analysis on ADDEP dataset.
 =======
 # Serum albumin and neurological recovery after spinal cord injury
 
+
 **Aim**: To investigate if albumin is significantly associated with outcomes after acute spinal cord injury. 
 
-**Data Source**: ADDEP Dataset
->>>>>>> cd9781ad1d1b889f3aa9e31c22f4f4a6386881ee
+**Data Source**: [ADDEP](https://www.icpsr.umich.edu/icpsrweb/ADDEP/studies/36724)
 
 **Our goal is to investigate if albumin is significantly associated with outcomes after acute spinal cord injury**. Our specific aim was to replicate from the previous study by [Bobo, Tong](https://journals.sagepub.com/doi/pdf/10.1177/1545968317746781). However, this analysis was done on the [Sygen clinical trial](https://journals.lww.com/spinejournal/Fulltext/2001/12151/The_Sygen__Multicenter_Acute_Spinal_Cord_Injury.15.aspx), which ran from 1992 to 1997, and as a result, was subject to outdated acute management practices (i.e., administration of methylprednisolone). Thus, we aim to replicate previous finding on a more recent dataset, [ADDEP](https://www.icpsr.umich.edu/icpsrweb/ADDEP/studies/36724). 
 
