@@ -1,4 +1,4 @@
-# ADDEP dataset
+# Association of albumin concentratiion and neurological recovery after spinal cord injury
 This is an analysis on ADDEP dataset.
 **Our goal is to investigate if albumin is significantly associated with outcomes after acute spinal cord injury**. 
 
