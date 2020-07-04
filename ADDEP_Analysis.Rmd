@@ -16,7 +16,7 @@ load("ADDEP.RData")
 
 #Analysis for ADDEP dataset 
 
-##Data Cleaning has been done separately. Click [here](https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R) for the R code.
+##Data Cleaning has been done separately. Click [here](https://github.com/AnhKhoaVo/ADDEP/blob/master/ADDEP_Clean_Analysis.R) (right click to open in new tab) for the R code.
 
 ##Descriptive statistics for Baseline Association 
 
@@ -38,7 +38,7 @@ table1(~SEX+AGE_BINARY+REVIEWASIAGRADEADM+ASIA_LEVEL_ADM+CRLOWALBUMIN|is.na(ASIA
 #Baseline Association 
 
 These following two figures are to see if Albumin is associated with LEMS and AIS grades at baseline:
-```{graphs, warning=FALSE}
+```{graphs, warning=FALSE, message=FALSE, echo=FALSE}
 library(ggplot2)
 library(ggpubr)
 cleanup <- theme(panel.grid.major = element_blank(),
@@ -90,7 +90,7 @@ ALB_AIS <- ggplot(data=subset(ADDEP_3, !is.na(ASIAGRADE_WALK)&ASIA_LEVEL_DIS==c(
 ```
 
 
-```{r, both graphs, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+```{r, both graphs, warning=FALSE, fig.width=14, fig.height=12, message=FALSE, echo=FALSE}
 library("ggpubr")
 ggarrange(ALB_LEMS, ALB_AIS, nrow=2, labels = c("A", "B"),common.legend = TRUE, legend = "bottom")
 ```
@@ -238,6 +238,19 @@ ADDEP_3$REVIEWASIAGRADEADM<- as.factor(ADDEP_3$REVIEWASIAGRADEADM)
 
 plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2~CRLOWALBUMIN+REVIEWASIAGRADEADM, data=subset(..data, !is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
 ```
+
+##Sensitivity analysis (Would age matter?) 
+In this ADDEP dataset, we have individuals who are from 12-19 years old. We excluded them to see if there is any difference in relation to outcomes: 
+
+```{r, URP sens, warning=FALSE, fig.width=14, fig.height=12, message=FALSE}
+ADDEP_3$AGE_INJ_NUM <- as.factor(ADDEP_3$AGE_INJ_NUM)
+
+plot(use_labels(ADDEP_3,ctree(Change_Scores ~ CRLOWALBUMIN+AGE_INJ_NUM, data=subset(..data, !(AGE_INJ_NUM==1)&!is.na(Change_Scores)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+
+plot(use_labels(ADDEP_3,ctree(Marked_Recovery_Annual_2 ~ CRLOWALBUMIN+AGE_INJ_NUM, data=subset(..data, !(AGE_INJ_NUM==1)&!is.na(Marked_Recovery_Annual_2)&!(Walk_Admission==1)&ASIA_LEVEL_ADM==c("C", "T")&!is.na(CRLOWALBUMIN)))))
+```
+
+The absence of age indicates that age is not significant variable assocating with outcome.
 
 #Summary 
 
