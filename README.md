@@ -13,3 +13,6 @@
 **Data Analysis**: Our analysis is published in [here](https://rpubs.com/AnhKhoaVo/586028). Briefly, we found that albumin was a crude prognostic biomarker. Serum albumin concentration could be useful in cases where injury severity cannot be accurately assessed.
 
 **Note**: It is important to note that we are building a **descriptive** model instead of a **predictive** model. Thus, we are more interested in confirming if albumin is a significant prognostic biomarker in this dataset rather than developing a model to predict for future unseen data. 
+
+
+**Who should we contact?**: [Anh Koa Vo](anhkhoa.vo@email.kpu.ca)
