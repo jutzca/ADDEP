@@ -15,4 +15,4 @@
 **Note**: It is important to note that we are building a **descriptive** model instead of a **predictive** model. Thus, we are more interested in confirming if albumin is a significant prognostic biomarker in this dataset rather than developing a model to predict for future unseen data. 
 
 
-**Who should we contact?**: [Anh Koa Vo](mailto:anhkhoa.vo@email.kpu.ca?subject=GitHub:%20Vo%20et%20al,%202020.%20Spinal%Cord)
+**Who should we contact?**: [Anh Koa Vo](mailto:anhkhoa.vo@email.kpu.ca?subject=GitHub:%20Vo%20et%20al,%202020.%20Spinal20%Cord)
